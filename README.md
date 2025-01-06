@@ -16,4 +16,5 @@ bind_port = 8888
 
 ```bash
 cargo run --release
+simple-proxy -c <config path>
 ```
