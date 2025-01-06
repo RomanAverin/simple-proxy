@@ -1,5 +1,6 @@
 use bytes::{Buf, BytesMut};
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::error::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -17,10 +18,17 @@ struct Server {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let config_file: String =
-        std::fs::read_to_string("simple-proxy.toml").unwrap_or_else(|error| {
-            panic!("Problem with opening configuration file: {error}");
-        });
+    let mut config_path = String::from("simple-proxy.toml");
+    let args: Vec<String> = env::args().collect();
+    let command = args[1].as_str();
+
+    if command == "-c" {
+        config_path = String::from(&args[2]);
+    };
+
+    let config_file: String = std::fs::read_to_string(config_path).unwrap_or_else(|error| {
+        panic!("Problem with opening configuration file: {error}");
+    });
     let config: Config = toml::from_str(&config_file).unwrap_or_else(|error| {
         panic!("ERROR: parsing configuration file: {error}");
     });
