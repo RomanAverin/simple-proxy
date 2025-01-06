@@ -1,14 +1,34 @@
 use bytes::{Buf, BytesMut};
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
-const TCP_PROXY_ADDR: &str = "127.0.0.1:8888";
+#[derive(Deserialize, Debug, Serialize)]
+struct Config {
+    server: Server,
+}
+
+#[derive(Deserialize, Debug, Serialize)]
+struct Server {
+    bind_address: String,
+    bind_port: u16,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let listener = TcpListener::bind(TCP_PROXY_ADDR).await?;
-    println!("SOCKS5 proxy server listening on {TCP_PROXY_ADDR}");
+    let config_file: String =
+        std::fs::read_to_string("simple-proxy.toml").unwrap_or_else(|error| {
+            panic!("Problem with opening configuration file: {error}");
+        });
+    let config: Config = toml::from_str(&config_file).unwrap_or_else(|error| {
+        panic!("ERROR: parsing configuration file: {error}");
+    });
+
+    let tcp_proxy_addr = format!("{}:{}", config.server.bind_address, config.server.bind_port);
+
+    let listener = TcpListener::bind(tcp_proxy_addr.as_str()).await?;
+    println!("SOCKS5 proxy server listening on {tcp_proxy_addr}");
 
     loop {
         let (client, _) = listener.accept().await?;
@@ -33,7 +53,7 @@ async fn handle_client(mut client: TcpStream) -> Result<(), Box<dyn Error>> {
     let nmethods = buf[1];
     let methods = &buf[2..2 + nmethods as usize];
 
-    if !methods.contains(&0x00) {
+    if methods.contains(&0x00) {
         client.write_all(&[0x05, 0xFF]).await?;
         return Err("No acceptable authentication methods".into());
     }
