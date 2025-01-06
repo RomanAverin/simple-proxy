@@ -1,7 +1,7 @@
 # Another SOCKS5 proxy
 
 > [!WARNING]
-> The plugin is under deep development.
+> The server is under deep development.
 > But it will be very useful to get feedback.
 
 ## Minimal config file
