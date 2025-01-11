@@ -18,3 +18,10 @@ bind_port = 8888
 cargo run --release
 simple-proxy -c <config path>
 ```
+
+## Roadmap
+
+- Logging
+- UDP support
+- Authentification(Username/Password)
+- IPv6
