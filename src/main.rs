@@ -7,11 +7,11 @@ use tokio::net::{TcpListener, TcpStream};
 
 #[derive(Deserialize, Debug, Serialize)]
 struct Config {
-    server: Server,
+    server: ServerConfig,
 }
 
 #[derive(Deserialize, Debug, Serialize)]
-struct Server {
+struct ServerConfig {
     bind_address: String,
     bind_port: u16,
 }
