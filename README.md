@@ -12,11 +12,11 @@ bind_address = "0.0.0.0"
 bind_port = 8888
 ```
 
-## Build
+## Build & run
 
 ```bash
 cargo run --release
-simple-proxy -c <config path>
+./simple-proxy -c <config path>
 ```
 
 ## Roadmap
