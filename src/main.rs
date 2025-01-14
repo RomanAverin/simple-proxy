@@ -4,6 +4,8 @@ use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::error::Error;
+use std::fs::File;
+use std::path::Path;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
@@ -43,8 +45,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     });
 
     if !config.server.log_file.is_empty() {
-        if let Err(err) = std::fs::exists(&config.server.log_file) {
-            error!("File do not exists: {}", err);
+        if std::fs::exists(&config.server.log_file).is_err() {
+            eprint!("File do not exists");
+            let filename = Path::new(&config.server.log_file)
+                .file_name()
+                .unwrap()
+                .to_os_string();
+            if let Err(err) = File::create_new(filename) {
+                eprintln!("ERROR create a new log file: {}", err);
+            };
         }
         Logger::try_with_env_or_str(&config.server.log_level)?
             .log_to_file(FileSpec::try_from(&config.server.log_file)?)
