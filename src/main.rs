@@ -1,4 +1,6 @@
 use bytes::{Buf, BytesMut};
+use flexi_logger::{Duplicate, FileSpec, Logger};
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::error::Error;
@@ -14,6 +16,13 @@ struct Config {
 struct ServerConfig {
     bind_address: String,
     bind_port: u16,
+    log_level: String,
+    #[serde(default = "default_log")]
+    log_file: String, // Empty string log to the stdout only
+}
+
+fn default_log() -> String {
+    "".to_string()
 }
 
 #[tokio::main]
@@ -33,16 +42,31 @@ async fn main() -> Result<(), Box<dyn Error>> {
         panic!("ERROR: parsing configuration file: {error}");
     });
 
-    let tcp_proxy_addr = format!("{}:{}", config.server.bind_address, config.server.bind_port);
+    if !config.server.log_file.is_empty() {
+        if let Err(err) = std::fs::exists(&config.server.log_file) {
+            error!("File do not exists: {}", err);
+        }
+        Logger::try_with_env_or_str(&config.server.log_level)?
+            .log_to_file(FileSpec::try_from(&config.server.log_file)?)
+            .duplicate_to_stdout(Duplicate::All)
+            .start()?;
+    } else {
+        Logger::try_with_env_or_str(&config.server.log_level)?.start()?;
+    }
+
+    let tcp_proxy_addr = format!(
+        "{}:{}",
+        &config.server.bind_address, &config.server.bind_port
+    );
 
     let listener = TcpListener::bind(tcp_proxy_addr.as_str()).await?;
-    println!("SOCKS5 proxy server listening on {tcp_proxy_addr}");
+    info!("SOCKS5 proxy server listening on {tcp_proxy_addr}");
 
     loop {
         let (client, _) = listener.accept().await?;
         tokio::spawn(async move {
             if let Err(e) = handle_client(client).await {
-                eprintln!("Error handling client: {}", e);
+                error!("Error handling client: {}", e);
             }
         });
     }
@@ -61,7 +85,7 @@ async fn handle_client(mut client: TcpStream) -> Result<(), Box<dyn Error>> {
     let nmethods = buf[1];
     let methods = &buf[2..2 + nmethods as usize];
 
-    if methods.contains(&0x00) {
+    if !methods.contains(&0x00) {
         client.write_all(&[0x05, 0xFF]).await?;
         return Err("No acceptable authentication methods".into());
     }
@@ -103,7 +127,7 @@ async fn handle_client(mut client: TcpStream) -> Result<(), Box<dyn Error>> {
 
     let mut target = TcpStream::connect(format!("{}:{}", addr, port)).await?;
     let src_add = client.peer_addr().unwrap();
-    println!("{src_add} -> {addr}:{port}");
+    info!("{src_add} -> {addr}:{port}");
 
     // Send response
     let response = [0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];

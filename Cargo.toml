@@ -5,7 +5,9 @@ edition = "2021"
 
 [dependencies]
 bytes = "1.9.0"
+flexi_logger = "0.29.8"
+log = "0.4.22"
 serde = { version = "1.0.217", features = ["derive"] }
-tokio = { version = "1.42.0", features = ["full"] }
+tokio = { version = "1.43.0", features = ["full"] }
 tokio-socks = "0.5.2"
 toml = "0.8.19"
