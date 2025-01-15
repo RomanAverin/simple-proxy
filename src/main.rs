@@ -1,6 +1,6 @@
 use bytes::{Buf, BytesMut};
 use flexi_logger::{Duplicate, FileSpec, Logger};
-use log::{error, info};
+use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::error::Error;
@@ -45,18 +45,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     });
 
     if !config.server.log_file.is_empty() {
-        if std::fs::exists(&config.server.log_file).is_err() {
-            eprint!("File do not exists");
-            let filename = Path::new(&config.server.log_file)
-                .file_name()
-                .unwrap()
-                .to_os_string();
-            if let Err(err) = File::create_new(filename) {
+        let filename_path = Path::new(&config.server.log_file);
+
+        if !filename_path.exists() {
+            debug!("Logging file do not exists, create new file");
+            if let Err(err) = File::create_new(filename_path) {
                 eprintln!("ERROR create a new log file: {}", err);
             };
         }
         Logger::try_with_env_or_str(&config.server.log_level)?
-            .log_to_file(FileSpec::try_from(&config.server.log_file)?)
+            .log_to_file(FileSpec::try_from(filename_path)?)
+            .append()
             .duplicate_to_stdout(Duplicate::All)
             .start()?;
     } else {

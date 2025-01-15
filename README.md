@@ -21,7 +21,7 @@ cargo run --release
 
 ## Roadmap
 
-- Logging
-- UDP support
-- Authentification(Username/Password)
-- IPv6
+- [x] Logging
+- [ ] UDP support
+- [ ] Authentification(Username/Password)
+- [ ] IPv6
